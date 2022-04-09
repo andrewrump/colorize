@@ -6,6 +6,7 @@
 # Anything comming in goes out - unless not in a regex group
 #
 # BUGS:
+# diff: red,yellow,green give different result for 204c204 and 210,211c210,211
 # In case of errors read the rest of the input before terminating
 ## Bug - the bugfix cause the program to hang on keyboard input!?!
 # Ran out of colors does not clear the input buffer
@@ -16,6 +17,8 @@
 # Input without echo
 #
 # TODO:
+# Accept words to (re)colorize as argument
+# XML pattern
 # tail -f of several files: ==> <filename> <==
 # Implement self test
 # Group matches and raise exception if match switches group
@@ -53,12 +56,19 @@ import re
 
 ##############################################################################################
 
-VERSION = "Version: 1.20 (" + '__FILEDATE__' + ")"
-AUTHOR = "Copyright: Andrew Rump, andrew@rump.dk, 2019-2021"
+VERSION = "Version: 1.30"
+AUTHOR = "Copyright: Andrew Rump, andrew@rump.dk, 2019-2022"
 
 ##############################################################################################
 
-COLORS = {'grey': 30, 'red': 31, 'green': 32, 'yellow':33, 'blue': 34, 'magenta': 35, 'cyan': 36}
+GREY = 'grey'
+RED = 'red'
+GREEN = 'green'
+YELLOW = 'yellow'
+BLUE = 'blue'
+MAGENTA = 'magenta'
+CYAN = 'cyan'
+COLORS = {GREY: 30, RED: 31, GREEN: 32, YELLOW:33, BLUE: 34, MAGENTA: 35, CYAN: 36}
 
 def light(color):
    return color + 60
@@ -86,13 +96,13 @@ matches = [] # When adding (not extending) the list of matches make sure to add 
 matches += [[r'^([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}|::1)( -)( )(-|[a-z]+)' + \
              r'( \[[0-9]{2}/[A-Z][a-z]{2}/[0-9]{4}:[0-9]{2}:[0-9]{2}:[0-9]{2} (\+|\-)[0-9]{4}\])' + \
              r'( ")((DELETE|GET|HEAD|INVALID|OPTIONS|PATCH|POST|PUT) )?(-|\* HTTP/1\.0|/.* HTTP/1\.[01])(" )([0-9]{3})( [0-9]+)( ")(.+)(")( ")(.+)(")$',
-             [light(COLORS['magenta']), light(COLORS['yellow']), light(COLORS['red']), light(COLORS['red']),
-              light(COLORS['green']), light(COLORS['grey']), light(COLORS['magenta']),
-              light(COLORS['yellow']), light(COLORS['grey']), 0,
-              light(COLORS['grey']), light(COLORS['grey']), light(COLORS['green']), light(COLORS['grey']),
-              light(COLORS['grey']), COLORS['green'], light(COLORS['grey'])],
-              [(r'^[12][0-9]{2}$', light(COLORS['green'])), (r'3[0-9]{2}$', light(COLORS['yellow'])),
-               (r'^408$', COLORS['green']), (r'^[45][0-9]{2}$', light(COLORS['red']))]
+             [light(COLORS[MAGENTA]), light(COLORS[YELLOW]), light(COLORS[RED]), light(COLORS[RED]),
+              light(COLORS[GREEN]), light(COLORS[GREY]), light(COLORS[MAGENTA]),
+              light(COLORS[YELLOW]), light(COLORS[GREY]), 0,
+              light(COLORS[GREY]), light(COLORS[GREY]), light(COLORS[GREEN]), light(COLORS[GREY]),
+              light(COLORS[GREY]), COLORS[GREEN], light(COLORS[GREY])],
+              [(r'^[12][0-9]{2}$', light(COLORS[GREEN])), (r'3[0-9]{2}$', light(COLORS[YELLOW])),
+               (r'^408$', COLORS[GREEN]), (r'^[45][0-9]{2}$', light(COLORS[RED]))]
            ]]
 
 # PHP Web log
@@ -104,9 +114,9 @@ matches += [[r'^([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}|::1)( -)( )(-|[a
 matches += [[r'^(\[[A-Z][a-z]{2} [A-Z][a-z]{2} [0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{6} [0-9]{4}\])' + \
              r'( \[php7:.+\])( \[pid [0-9]+\])( \[client [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}:[0-9]+\])' + \
              r'( PHP .+:  )(.+)( in .+)( on line [0-9]+)(, referer: .+)?$',
-             [light(COLORS['green']), light(COLORS['yellow']), light(COLORS['green']), light(COLORS['magenta']),
-              light(COLORS['yellow']), light(COLORS['red']), light(COLORS['green']), light(COLORS['yellow']),
-              light(COLORS['green'])]]]
+             [light(COLORS[GREEN]), light(COLORS[YELLOW]), light(COLORS[GREEN]), light(COLORS[MAGENTA]),
+              light(COLORS[YELLOW]), light(COLORS[RED]), light(COLORS[GREEN]), light(COLORS[YELLOW]),
+              light(COLORS[GREEN])]]]
 
 # PHP log
 # [Mon Oct 07 16:19:24.263155 2019] [autoindex:error] [pid 1819] [client 192.168.1.225:60589] AH01276: Cannot serve directory /var/www/: No matching DirectoryIndex (index.html,index.cgi,index.pl,index.php,index.xhtml,index.htm) found, and server-generated directory index forbidden by Options directive
@@ -114,15 +124,15 @@ matches += [[r'^(\[[A-Z][a-z]{2} [A-Z][a-z]{2} [0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{
 matches += [[r'^(\[[A-Z][a-z]{2} [A-Z][a-z]{2} [0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{6} [0-9]{4}\])' + \
              r'( \[autoindex:error\])( \[pid [0-9]+\])( \[client [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}:[0-9]+\])' + \
              r'( AH01276: Cannot serve directory )(.*)(: No matching DirectoryIndex \(index.html,index.cgi,index.pl,index.php,index.xhtml,index.htm\) found, and server-generated directory index forbidden by Options directive)$',
-             [light(COLORS['green']), light(COLORS['yellow']), light(COLORS['green']),
-              light(COLORS['magenta']), light(COLORS['yellow']), light(COLORS['red']), light(COLORS['yellow'])]]]
+             [light(COLORS[GREEN]), light(COLORS[YELLOW]), light(COLORS[GREEN]),
+              light(COLORS[MAGENTA]), light(COLORS[YELLOW]), light(COLORS[RED]), light(COLORS[YELLOW])]]]
 
 #[Tue Jan 14 14:13:59.450034 2020] [php7:error] [pid 30623] [client 192.168.168.169:64941] script '/var/www/pleje_development/wp-login.php' not found or unable to stat
 matches += [[r'^(\[[A-Z][a-z]{2} [A-Z][a-z]{2} [0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{6} [0-9]{4}\])' + \
              r'( \[php7:error\])( \[pid [0-9]+\])( \[client [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}:[0-9]+\])' + \
              r'( script \'.*\' not found or unable to stat)$',
-             [light(COLORS['green']), light(COLORS['yellow']), light(COLORS['green']),
-              light(COLORS['magenta']), light(COLORS['red'])]]]
+             [light(COLORS[GREEN]), light(COLORS[YELLOW]), light(COLORS[GREEN]),
+              light(COLORS[MAGENTA]), light(COLORS[RED])]]]
 
 # Apache2 log
 #[Fri Dec 06 13:13:31.319105 2019] [mpm_prefork:notice] [pid 594] AH00169: caught SIGTERM, shutting down
@@ -131,7 +141,7 @@ matches += [[r'^(\[[A-Z][a-z]{2} [A-Z][a-z]{2} [0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{
 matches += [[r'^(\[[A-Z][a-z]{2} [A-Z][a-z]{2} [0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{6} [0-9]{4}\])' + \
              r'( \[(core|mpm_prefork):notice\])( \[pid [0-9]+\])' + \
              r'( AH[0-9]+: .+)$',
-             [light(COLORS['green']), light(COLORS['yellow']), light(COLORS['grey']), light(COLORS['magenta'])]]]
+             [light(COLORS[GREEN]), light(COLORS[YELLOW]), light(COLORS[GREY]), light(COLORS[MAGENTA])]]]
 
 # SimpleSAMLphp web log
 #[Mon Dec 09 09:54:24.626515 2019] [php7:notice] [pid 11588] [client 192.168.1.214:55251] SimpleSAMLphp ERR [c383cf2251] Missing default-enable or default-disable file for the module authfacebook
@@ -146,8 +156,8 @@ matches += [[r'^(\[[A-Z][a-z]{2} [A-Z][a-z]{2} [0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{
              r'( \[php7:.+\])( \[pid [0-9]+\])( \[client [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}:[0-9]+\])' + \
              r'( SimpleSAMLphp (DEBUG|ERR))( \[[0-9a-f]{10}\] )' + \
              r'((.+)$)',
-             [light(COLORS['green']), light(COLORS['yellow']), light(COLORS['green']), light(COLORS['magenta']),
-              light(COLORS['green']), light(COLORS['yellow']), light(COLORS['red'])]]]
+             [light(COLORS[GREEN]), light(COLORS[YELLOW]), light(COLORS[GREEN]), light(COLORS[MAGENTA]),
+              light(COLORS[GREEN]), light(COLORS[YELLOW]), light(COLORS[RED])]]]
 # SimpleSAMLphp web log
 #Dec 09 13:11:49 simplesamlphp DEBUG [f103537713] Session: Valid session found with 'admin'.
 #Dec 09 13:11:49 simplesamlphp DEBUG [f103537713] Localization: using old system
@@ -169,39 +179,40 @@ matches += [[r'^([A-Z][a-z]{2} [0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2})' + \
                r'idpDisco.saml: getSelectedIdP\(\) returned null' + r'|' + \
              r')$)',
              #' + r'|' + \
-             [light(COLORS['green']), light(COLORS['yellow']), light(COLORS['magenta']), light(COLORS['green'])]]]
+             [light(COLORS[GREEN]), light(COLORS[YELLOW]), light(COLORS[MAGENTA]), light(COLORS[GREEN])]]]
 
 # diff
-matches += [[r'^.*([0-9]+(,[0-9]+)?)([acd])([0-9]+(,[0-9]+)?)$',
-             [light(COLORS['red']), COLORS['red'], COLORS['red'], COLORS['yellow'], COLORS['green'], COLORS['green']]]]
-matches += [[r'^(---)$', [COLORS['yellow']]]]
-matches += [[r'^(< *)(.+)$', [COLORS['red'], light(COLORS['red'])]]]
-matches += [[r'^(> *)(.+)$', [COLORS['green'], light(COLORS['green'])]]]
-matches += [[r'^([\+\-])([^ ].+)$', [COLORS['red'], COLORS['green']]]]
-matches += [[r'^(\\ No newline at end of file)$', [COLORS['yellow']]]]
+#matches += [[r'^.*([0-9]+(,[0-9]+)?)([acd])([0-9]+(,[0-9]+)?)$',
+matches += [[r'^([0-9]+(,[0-9]+)?)([acd])([0-9]+(,[0-9]+)?)$',
+             [light(COLORS[RED]), COLORS[RED], COLORS[YELLOW], COLORS[GREEN], COLORS[GREEN]]]]
+matches += [[r'^(---)$', [COLORS[YELLOW]]]]
+matches += [[r'^(< *)(.+)$', [COLORS[RED], light(COLORS[RED])]]]
+matches += [[r'^(> *)(.+)$', [COLORS[GREEN], light(COLORS[GREEN])]]]
+matches += [[r'^([\+\-])([^ ].+)$', [COLORS[RED], COLORS[GREEN]]]]
+matches += [[r'^(\\ No newline at end of file)$', [COLORS[YELLOW]]]]
 matches += [[r'^(Only in )(.+)(:)(.+)$',
-             [light(COLORS['red']), light(COLORS['yellow']), light(COLORS['red']), light(COLORS['yellow'])]]]
+             [light(COLORS[RED]), light(COLORS[YELLOW]), light(COLORS[RED]), light(COLORS[YELLOW])]]]
 matches += [[r'^(Binary files )(.+)( and )(.+)( differ)$',
-             [light(COLORS['yellow']), light(COLORS['red']), light(COLORS['yellow']), light(COLORS['green']),
-              light(COLORS['yellow'])]]]
+             [light(COLORS[YELLOW]), light(COLORS[RED]), light(COLORS[YELLOW]), light(COLORS[GREEN]),
+              light(COLORS[YELLOW])]]]
 matches += [[r'^(diff -r )(.+)( )(.+)$',
-             [light(COLORS['yellow']), light(COLORS['red']), COLORS['green'], light(COLORS['green'])]]]
+             [light(COLORS[YELLOW]), light(COLORS[RED]), COLORS[GREEN], light(COLORS[GREEN])]]]
 
 ## copy
-#matches += [[r'^sending incremental file list$', [light(COLORS['grey'])]]]
+#matches += [[r'^sending incremental file list$', [light(COLORS[GREY])]]]
 #matches += [[r'^(sent )([0-9]+)( bytes  received )([0-9]+)( bytes  [0-9]+\.[0-9]+ bytes/sec)$',
-#             [light(COLORS['grey']), COLORS['green'], light(COLORS['grey']), COLORS['green'], light(COLORS['grey'])]]]
-#matches += [[r'^.+\.php'], [light(COLORS['green'])]]]
+#             [light(COLORS[GREY]), COLORS[GREEN], light(COLORS[GREY]), COLORS[GREEN], light(COLORS[GREY])]]]
+#matches += [[r'^.+\.php'], [light(COLORS[GREEN])]]]
 #matches += [[r'^(total size is )([0-9]+)(  speedup is [0-9]+\.[0-9]+)$',
-#             [light(COLORS['grey']), COLORS['green'], light(COLORS['grey'])]]]
+#             [light(COLORS[GREY]), COLORS[GREEN], light(COLORS[GREY])]]]
 
 # XML/HTML
 #matches += [[r'^(( *)(</?)([^>]+)(/?>)(([^<]+)?(<)([^>]+)(/?>))?)+$',
 #matches += [[r'^(( *)((<)(.+?)(>)((.+?)?(<)(.+?)(/?>))?|(<)(.+?)(/>)|(</)(.+?)(>)))+$',
 matches += [[r'^( *?)(<)(.+?)(>)((.*?)(<)(.+?)(/?>))?$',
-            [COLORS['grey'], light(COLORS['red']), COLORS['green'], light(COLORS['red']),
-             light(COLORS['green']),
-             COLORS['grey'], light(COLORS['red']), COLORS['green'], light(COLORS['red'])]]]
+            [COLORS[GREY], light(COLORS[RED]), COLORS[GREEN], light(COLORS[RED]),
+             light(COLORS[GREEN]),
+             COLORS[GREY], light(COLORS[RED]), COLORS[GREEN], light(COLORS[RED])]]]
 
 # W3C IIS
 #2021-09-17 08:05:28 192.169.169.41 POST /cpr2.asp - 8080 - 192.168.168.193 - 200 0 0 452
@@ -245,29 +256,29 @@ matches += [[r'^( *?)(<)(.+?)(>)((.*?)(<)(.+?)(/?>))?$',
 #
 
 matches += [[r'^#Software: Microsoft Internet Information Services [0-9]+\.[0-9]+$',
-            [COLORS['green']]]]
+            [COLORS[GREEN]]]]
 matches += [[r'^(#Version [0-9]+\.[0-9]+)$',
-            [COLORS['green']]]]
+            [COLORS[GREEN]]]]
 matches += [[r'^#Date: [0-9]{2}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}$',
-            [COLORS['green']]]]
+            [COLORS[GREEN]]]]
 matches += [[r'^#Fields: date time s-ip cs-method cs-uri-stem cs-uri-query s-port cs-username c-ip cs(User-Agent) sc-status sc-substatus sc-win32-status time-taken$',
-            [COLORS['green']]]]
+            [COLORS[GREEN]]]]
 matches += [[r'^([0-9]{4}-[0-9]{2}-[0-9]{2})( )([0-9]{2}:[0-9]{2}:[0-9]{2})( )' + \
              r'([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})( )(GET|POST)( )' + \
              r'(/[a-zA-Z0-9_]+\.(asp|dt|ico))( )(-|.*)( )([0-9]+)( )(-)( )' + \
              r'([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})( )(.+)( )' + \
              r'([0-9]{3})( )(0)( )([0-9])( )([0-9]+)$',
              #r'(/[a-zA-Z0-9_]+\.(asp|dt|ico))( )(-|(.*)\|[0-9]+\|[0-9a-f]+\|.*\|[0-9]+\|[0-9]+\|.*)( )([0-9]+)( )(-)( )' + \
-            [COLORS['green'], COLORS['grey'], COLORS['blue'], COLORS['grey'],
-             COLORS['magenta'], COLORS['grey'], COLORS['green'], COLORS['grey'],
-             light(COLORS['grey']), COLORS['green'], light(COLORS['blue']),
-             COLORS['red'], light(COLORS['green']), COLORS['grey'], COLORS['red'], COLORS['grey'],
-             COLORS['green'], COLORS['grey'], COLORS['red'], COLORS['grey'],
-             COLORS['green'], COLORS['grey'], COLORS['red'], COLORS['red'],
-             COLORS['magenta'], COLORS['grey'], COLORS['green']]]]
-             #[(r'^[12][0-9]{2}$', light(COLORS['green'])), (r'3[0-9]{2}$', light(COLORS['yellow'])),
-             # (r'^408$', COLORS['green']), (r'^[45][0-9]{2}$', light(COLORS['red']))], COLORS['grey'],
-             #COLORS['magenta'], COLORS['grey'], COLORS['green']]]]
+            [COLORS[GREEN], COLORS[GREY], COLORS[BLUE], COLORS[GREY],
+             COLORS[MAGENTA], COLORS[GREY], COLORS[GREEN], COLORS[GREY],
+             light(COLORS[GREY]), COLORS[GREEN], light(COLORS[BLUE]),
+             COLORS[RED], light(COLORS[GREEN]), COLORS[GREY], COLORS[RED], COLORS[GREY],
+             COLORS[GREEN], COLORS[GREY], COLORS[RED], COLORS[GREY],
+             COLORS[GREEN], COLORS[GREY], COLORS[RED], COLORS[RED],
+             COLORS[MAGENTA], COLORS[GREY], COLORS[GREEN]]]]
+             #[(r'^[12][0-9]{2}$', light(COLORS[GREEN])), (r'3[0-9]{2}$', light(COLORS[YELLOW])),
+             # (r'^408$', COLORS[GREEN]), (r'^[45][0-9]{2}$', light(COLORS[RED]))], COLORS[GREY],
+             #COLORS[MAGENTA], COLORS[GREY], COLORS[GREEN]]]]
 
 ##############################################################################################
 
@@ -275,9 +286,78 @@ exception = False
 
 ##############################################################################################
 
+def colormatch(match, code, matches, line):
+   length = len(match)
+   pos = 0
+   
+   while pos >= 0:
+      pos = line.find(match, pos)
+      if pos >= 0:
+         if pos in matches:
+            raise Exception('colorclash in ' + line)
+         matches[pos] = [length, code]
+         pos += 1
+   return matches
+
+##############################################################################################
+
+def colorize(args, line):
+   # Handle overlapping matches
+   matches = {}
+   #if args.grey != None:
+   #   matches = colormatch(args.grey, color_code(COLORS[GREY], args.blank), matches, line)
+   #if args.light_grey != None:
+   #   matches = colormatch(args.light_grey, color_code(light(COLORS[GREY]), args.blank), matches, line)
+   if args.red != None:
+      matches = colormatch(args.red, color_code(COLORS[RED], args.blank), matches, line)
+   if args.light_red != None:
+      matches = colormatch(args.light_red, color_code(light(COLORS[RED]), args.blank), matches, line)
+   if args.green != None:
+      matches = colormatch(args.green, color_code(COLORS[GREEN], args.blank), matches, line)
+   if args.light_green != None:
+      matches = colormatch(args.light_green, color_code(light(COLORS[GREEN]), args.blank), matches, line)
+   if args.yellow != None:
+      matches = colormatch(args.yellow, color_code(COLORS[YELLOW], args.blank), matches, line)
+   if args.light_yellow != None:
+      matches = colormatch(args.light_yellow, color_code(light(COLORS[YELLOW]), args.blank), matches, line)
+   if args.blue != None:
+      matches = colormatch(args.blue, color_code(COLORS[BLUE], args.blank), matches, line)
+   if args.light_blue != None:
+      matches = colormatch(args.light_blue, color_code(light(COLORS[BLUE]), args.blank), matches, line)
+   if args.magenta != None:
+      matches = colormatch(args.magenta, color_code(COLORS[MAGENTA], args.blank), matches, line)
+   if args.light_magenta != None:
+      matches = colormatch(args.light_magenta, color_code(light(COLORS[MAGENTA]), args.blank), matches, line)
+   if args.cyan != None:
+      matches = colormatch(args.cyan, color_code(COLORS[CYAN], args.blank), matches, line)
+   if args.light_cyan != None:
+      matches = colormatch(args.light_cyan, color_code(light(COLORS[CYAN]), args.blank), matches, line)
+
+   if args.verbose:
+      print(matches)
+
+   pos = len(line)
+   for key in sorted(matches.keys(), reverse = True):
+      if args.verbose:
+         print(key)
+      if key + matches[key][0] > pos:
+         raise Exception('Colorclash ' + line)
+      line = line[:key + matches[key][0]] + color_code(blank = args.blank) + line[key + matches[key][0]:]
+      line = line[:key] + matches[key][1] + line[key:]
+      pos = key
+      if args.verbose:
+         print(key, matches[key], pos)
+         print(line)
+
+   return line
+
+##############################################################################################
+
 def match(args, line, regex, colors, local):
    m = re.match(regex, line)
    if m:
+      if DEBUG:
+         pdb.set_trace()
       work_around = None
       index = -1
       for group in m.groups():
@@ -303,7 +383,7 @@ def match(args, line, regex, colors, local):
                   raise Exception('Ran out of colors on ' + line)
             if type(colors[index]) is int:
                if colors[index] > 0: # BUG TODO DONE BUG What???
-                  print(color_code(colors[index], args.blank) + group, end = '')
+                  print(color_code(colors[index], args.blank) + colorize(args, group), end = '')
                else:
                   found = False
                   for pattern in local:
@@ -313,15 +393,15 @@ def match(args, line, regex, colors, local):
                         m = re.match(regex, group)
                         if m:
                            found = True
-                           print(color_code(color, args.blank) + group, end = '')
+                           print(color_code(color, args.blank) + colorize(args, group), end = '')
                            break
                      if not found:
                         if args.abort_no_match:
                            exception = True
                            raise Exception('Could not match group')
-                        print(color_code(light(COLORS['red']), args.blank) + group, end = '')
+                        print(color_code(light(COLORS[RED]), args.blank) + group, end = '')
                   #if args.verbose:
-                  #   print(color_code(light(COLORS['green']), args.blank) + group, end = '')
+                  #   print(color_code(light(COLORS[GREEN]), args.blank) + group, end = '')
             else:
                if type(colors[index]) is list:
                   raise Exception('Colors ' + str(colors[index]) + ' not implemented yet')
@@ -355,7 +435,7 @@ def main(args):
             break
       if not matched:
          if not args.blank and not args.default_not_red:
-            print(color_code(light(COLORS['red']), args.blank), end = '')
+            print(color_code(light(COLORS[RED]), args.blank), end = '')
          print(line, end = '')
          if not args.blank and not args.default_not_red:
             print(color_code(blank = args.blank), end = '')
@@ -377,6 +457,20 @@ if __name__ == '__main__':
    parser.add_argument('-c', '--cycle_color', action = 'store_true', help = 'Cycle color if running out of colors')
    parser.add_argument('-a', '--abort_no_match', action = 'store_true', help = 'Abort if no match')
    parser.add_argument('-n', '--abort_color', action = 'store_true', help = 'Abort if number of colors don''t match')
+   #parser.add_argument('-cg', '--grey', help = 'Color argument grey')
+   #parser.add_argument('-lg', '--light_grey', help = 'Color argument light grey')
+   parser.add_argument('-cr', '--red', help = 'Color argument red')
+   parser.add_argument('-lr', '--light_red', help = 'Color argument light red')
+   parser.add_argument('-cg', '--green', help = 'Color argument green')
+   parser.add_argument('-lg', '--light_green', help = 'Color argument light green')
+   parser.add_argument('-cy', '--yellow', help = 'Color argument yellow')
+   parser.add_argument('-ly', '--light_yellow', help = 'Color argument light yellow')
+   parser.add_argument('-cb', '--blue', help = 'Color argument blue')
+   parser.add_argument('-lb', '--light_blue', help = 'Color argument light blue')
+   parser.add_argument('-cm', '--magenta', help = 'Color argument magenta')
+   parser.add_argument('-lm', '--light_magenta', help = 'Color argument light magenta')
+   parser.add_argument('-cc', '--cyan', help = 'Color argument cyan')
+   parser.add_argument('-lc', '--light_cyan', help = 'Color argument light cyan')
    args = parser.parse_args()
 
    #main(args)
@@ -395,7 +489,7 @@ if __name__ == '__main__':
          raise
       else:
          print()
-         print(color_code(light(COLORS['red']), args.blank), end = '')
+         print(color_code(light(COLORS[RED]), args.blank), end = '')
          print(e)
          print(color_code(blank = args.blank), end = '')
 #Traceback (most recent call last):
