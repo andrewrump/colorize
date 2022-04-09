@@ -1,18 +1,27 @@
 #!/usr/bin/python3
 #
-# By Andrew Rump (andrew@rump.dk) October 2019
+# By Andrew Rump (andrew@rump.dk) October 2019-2021
 #
 # Colourize input depending on the format of the input
 # Anything comming in goes out - unless not in a regex group
 #
 # BUGS:
+# In case of errors read the rest of the input before terminating
+## Bug - the bugfix cause the program to hang on keyboard input!?!
+# Ran out of colors does not clear the input buffer
 # XML/HTML miss the last > character
 # 144,145d104 does not change color correctly
 # - - matched using ( -)( -) are ignored
 # - - matched using ( -)( )(-) miss the space
+# Input without echo
 #
 # TODO:
 # Implement self test
+# Group matches and raise exception if match switches group
+# Implicit ^$ instead of explicit - or vice versa
+# DONE? COLORS depending on match (200, 404, ...)
+# Dynamic fields, e.g., W3C field definitions
+##Fields: date time s-ip cs-method cs-uri-stem cs-uri-query s-port cs-username c-ip cs(User-Agent) sc-status sc-substatus sc-win32-status time-taken
 # Isn't black color missing?
 # Add XML/HTML support
 # Support free (XML/HTML) format, i.e., repeating pattern (use findall()/finditer()? & start()/end()/span())
@@ -189,6 +198,74 @@ matches += [[r'^( *?)(<)(.+?)(>)((.*?)(<)(.+?)(/?>))?$',
              light(COLORS['green']),
              COLORS['grey'], light(COLORS['red']), COLORS['green'], light(COLORS['red'])]]]
 
+# W3C IIS
+#2021-09-17 08:05:28 192.169.169.41 POST /cpr2.asp - 8080 - 192.168.168.193 - 200 0 0 452
+#2021-09-17 08:05:34 192.169.169.41 GET /dgws_cpr.asp System=Test&ResponseId=0|251|800a01f4|Variable_is_undefined:_'orgAnswer'|25|80004005|[MySQL][ODBC_5.1_Driver]Unknown_database_'basislaege' 8080 - 192.169.169.41 Mozilla/5.0+(Windows+NT+6.1;+Win64;+x64)+AppleWebKit/537.36+(KHTML,+like+Gecko)+Chrome/93.0.4577.63+Safari/537.36 500 0 0 52
+#2021-09-17 08:05:56 192.169.169.41 GET /EDI_in.dt - 8080 - 192.168.168.72 Mozilla/4.0+(compatible;+Win32;+WinHttp.WinHttpRequest.5) 200 0 0 78
+#2021-09-17 08:06:53 192.169.169.41 GET /dgws_cpr.asp System=Test&ResponseId=0|256|800a01f4|Variable_is_undefined:_'boldXML'|25|80004005|[MySQL][ODBC_5.1_Driver]Unknown_database_'basislaege' 8080 - 192.169.169.41 Mozilla/5.0+(Windows+NT+6.1;+Win64;+x64)+AppleWebKit/537.36+(KHTML,+like+Gecko)+Chrome/93.0.4577.63+Safari/537.36 500 0 0 168
+#2021-09-17 08:06:55 192.169.169.41 GET /dgws_cpr.asp System=Test&ResponseId=0|256|800a01f4|Variable_is_undefined:_'boldXML'|25|80004005|[MySQL][ODBC_5.1_Driver]Unknown_database_'basislaege' 8080 - 192.169.169.41 Mozilla/5.0+(Windows+NT+6.1;+Win64;+x64)+AppleWebKit/537.36+(KHTML,+like+Gecko)+Chrome/93.0.4577.63+Safari/537.36 500 0 0 130
+#Software: Microsoft Internet Information Services 7.5
+#Version: 1.0
+#Date: 2017-03-05 13:29:48
+#Fields: date time s-ip cs-method cs-uri-stem cs-uri-query s-port cs-username c-ip cs(User-Agent) sc-status sc-substatus sc-win32-status time-taken
+#2017-03-05 13:29:48 192.169.169.41 GET /testkk.asp - 8080 - 192.169.169.130 Mozilla/5.0+(Windows+NT+6.1;+WOW64;+rv:51.0)+Gecko/20100101+Firefox/51.0 200 0 0 249
+#2017-03-05 13:29:48 192.169.169.41 GET /favicon.ico - 8080 - 192.169.169.130 Mozilla/5.0+(Windows+NT+6.1;+WOW64;+rv:51.0)+Gecko/20100101+Firefox/51.0 404 0 2 202
+#2017-03-05 13:29:51 192.169.169.41 GET /testkk.asp - 8080 - 192.169.169.130 Mozilla/5.0+(Windows+NT+6.1;+WOW64;+rv:51.0)+Gecko/20100101+Firefox/51.0 200 0 0 218
+#2017-03-05 13:29:52 192.169.169.41 GET /testkk.asp - 8080 - 192.169.169.130 Mozilla/5.0+(Windows+NT+6.1;+WOW64;+rv:51.0)+Gecko/20100101+Firefox/51.0 200 0 0 218
+#2017-03-05 13:36:31 192.169.169.41 GET /testkk.asp - 8080 - 192.168.1.126 Mozilla/5.0+(Macintosh;+Intel+Mac+OS+X+10.12;+rv:51.0)+Gecko/20100101+Firefox/51.0 200 0 0 0
+#2017-03-05 13:36:31 192.169.169.41 GET /favicon.ico - 8080 - 192.168.1.126 Mozilla/5.0+(Macintosh;+Intel+Mac+OS+X+10.12;+rv:51.0)+Gecko/20100101+Firefox/51.0 404 0 2 15
+#2017-03-05 13:45:11 192.169.169.41 GET /testkk.asp - 8080 - 81.19.251.35 Mozilla/5.0+(Macintosh;+Intel+Mac+OS+X+10_12_3)+AppleWebKit/537.36+(KHTML,+like+Gecko)+Chrome/56.0.2924.87+Safari/537.36 200 0 0 0
+#2017-03-05 13:45:11 192.169.169.41 GET /favicon.ico - 8080 - 81.19.251.35 Mozilla/5.0+(Macintosh;+Intel+Mac+OS+X+10_12_3)+AppleWebKit/537.36+(KHTML,+like+Gecko)+Chrome/56.0.2924.87+Safari/537.36 404 0 2 0
+#2017-03-05 13:51:40 192.169.169.41 GET /testkk.asp - 8080 - 192.168.1.126 Mozilla/5.0+(Macintosh;+Intel+Mac+OS+X+10.12;+rv:51.0)+Gecko/20100101+Firefox/51.0 200 0 0 15
+#2017-03-05 13:53:41 192.169.169.41 GET /testkk.asp - 8080 - 192.168.168.110 Mozilla/5.0+(X11;+Ubuntu;+Linux+x86_64;+rv:20.0)+Gecko/20100101+Firefox/20.0 200 0 0 0
+#2017-03-05 13:53:41 192.169.169.41 GET /favicon.ico - 8080 - 192.168.168.110 Mozilla/5.0+(X11;+Ubuntu;+Linux+x86_64;+rv:20.0)+Gecko/20100101+Firefox/20.0 404 0 2 0
+#2017-03-05 13:53:41 192.169.169.41 GET /favicon.ico - 8080 - 192.168.168.110 Mozilla/5.0+(X11;+Ubuntu;+Linux+x86_64;+rv:20.0)+Gecko/20100101+Firefox/20.0 404 0 2 15
+##Software: Microsoft Internet Information Services 7.5
+##Version: 1.0
+##Date: 2017-03-05 14:12:25
+##Fields: date time s-ip cs-method cs-uri-stem cs-uri-query s-port cs-username c-ip cs(User-Agent) sc-status sc-substatus sc-win32-status time-taken
+#2017-03-05 14:12:25 192.169.169.41 GET /testkk.asp - 8080 - 81.19.251.35 Mozilla/5.0+(Macintosh;+Intel+Mac+OS+X+10_12_3)+AppleWebKit/537.36+(KHTML,+like+Gecko)+Chrome/56.0.2924.87+Safari/537.36 200 0 0 0
+#2017-03-05 14:15:43 192.169.169.41 GET /testkk.asp - 8080 - 81.7.167.150 Mozilla/5.0+(Macintosh;+Intel+Mac+OS+X+10_12_3)+AppleWebKit/537.36+(KHTML,+like+Gecko)+Chrome/56.0.2924.87+Safari/537.36 200 0 0 15
+#2017-03-05 14:15:45 192.169.169.41 GET /testkk.asp - 8080 - 81.7.167.150 Mozilla/5.0+(Macintosh;+Intel+Mac+OS+X+10_12_3)+AppleWebKit/537.36+(KHTML,+like+Gecko)+Chrome/56.0.2924.87+Safari/537.36 200 0 0 15
+#2017-03-05 14:15:56 192.169.169.41 GET /testkk.asp - 8080 - 81.7.167.150 Mozilla/5.0+(Windows+NT+6.1;+WOW64;+rv:51.0)+Gecko/20100101+Firefox/51.0 200 0 0 218
+#2017-03-05 14:16:01 192.169.169.41 GET /favicon.ico - 8080 - 81.7.167.150 Mozilla/5.0+(Windows+NT+6.1;+WOW64;+rv:51.0)+Gecko/20100101+Firefox/51.0 404 0 2 218
+#2017-03-05 14:16:04 192.169.169.41 GET /testkk.asp - 8080 - 81.7.167.150 Mozilla/5.0+(Windows+NT+6.1;+WOW64;+rv:51.0)+Gecko/20100101+Firefox/51.0 200 0 0 202
+#2017-03-05 14:16:06 192.169.169.41 GET /testkk.asp - 8080 - 81.7.167.150 Mozilla/5.0+(Windows+NT+6.1;+WOW64;+rv:51.0)+Gecko/20100101+Firefox/51.0 200 0 0 218
+#2017-03-05 14:17:06 192.169.169.41 GET /testkk.asp - 8080 - 81.7.167.150 Mozilla/5.0+(Macintosh;+Intel+Mac+OS+X+10_12_3)+AppleWebKit/537.36+(KHTML,+like+Gecko)+Chrome/56.0.2924.87+Safari/537.36 200 0 0 0
+#2017-03-05 14:17:14 192.169.169.41 GET /testkk.asp - 8080 - 81.7.167.150 Mozilla/5.0+(Windows+NT+6.1;+WOW64;+rv:51.0)+Gecko/20100101+Firefox/51.0 200 0 0 218
+#2017-03-05 14:17:16 192.169.169.41 GET /testkk.asp - 8080 - 81.7.167.150 Mozilla/5.0+(Windows+NT+6.1;+WOW64;+rv:51.0)+Gecko/20100101+Firefox/51.0 200 0 0 218
+#2017-03-05 14:17:17 192.169.169.41 GET /testkk.asp - 8080 - 81.7.167.150 Mozilla/5.0+(Windows+NT+6.1;+WOW64;+rv:51.0)+Gecko/20100101+Firefox/51.0 200 0 0 218
+#2017-03-05 14:17:42 192.169.169.41 GET /testkk.asp - 8080 - 81.7.167.150 Mozilla/5.0+(X11;+Ubuntu;+Linux+x86_64;+rv:20.0)+Gecko/20100101+Firefox/20.0 200 0 0 0
+#2017-03-05 14:17:42 192.169.169.41 GET /favicon.ico - 8080 - 81.7.167.150 Mozilla/5.0+(X11;+Ubuntu;+Linux+x86_64;+rv:20.0)+Gecko/20100101+Firefox/20.0 404 0 2 0
+#
+
+matches += [[r'^#Software: Microsoft Internet Information Services [0-9]+\.[0-9]+$',
+            [COLORS['green']]]]
+matches += [[r'^#Version [0-9]+\.[0-9]+$',
+            [COLORS['green']]]]
+matches += [[r'^#Date: [0-9]{2}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}$',
+            [COLORS['green']]]]
+matches += [[r'^#Fields: date time s-ip cs-method cs-uri-stem cs-uri-query s-port cs-username c-ip cs(User-Agent) sc-status sc-substatus sc-win32-status time-taken$',
+            [COLORS['green']]]]
+matches += [[r'^([0-9]{4}-[0-9]{2}-[0-9]{2})( )([0-9]{2}:[0-9]{2}:[0-9]{2})( )' + \
+             r'([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})( )(GET|POST)( )' + \
+             r'(/[a-zA-Z0-9_]+\.(asp|dt|ico))( )(-)( )([0-9]+)( )(-)( )' + \
+             r'([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})( )(.+)( )' + \
+             r'([0-9]{3})( )(0)( )(0)( )([0-9]+)$',
+            [COLORS['green'], COLORS['grey'], COLORS['blue'], COLORS['grey'],
+             COLORS['magenta'], COLORS['grey'], COLORS['green'], COLORS['grey'],
+             light(COLORS['grey']), COLORS['green'], COLORS['grey'],
+             COLORS['red'], light(COLORS['green']), COLORS['grey'], COLORS['red'], COLORS['grey'],
+             COLORS['green'], COLORS['grey'], COLORS['red'], COLORS['grey'],
+             COLORS['green'], COLORS['grey'], COLORS['red'],
+             [(r'^[12][0-9]{2}$', light(COLORS['green'])), (r'3[0-9]{2}$', light(COLORS['yellow'])),
+              (r'^408$', COLORS['green']), (r'^[45][0-9]{2}$', light(COLORS['red']))], COLORS['grey'],
+             COLORS['magenta'], COLORS['grey'], COLORS['green']]]]
+
+##############################################################################################
+
+exception = False
+
 ##############################################################################################
 
 def match(args, line, regex, colors, local):
@@ -215,6 +292,7 @@ def match(args, line, regex, colors, local):
                if args.cycle_color:
                   index = 0
                else:
+                  exception = True
                   raise Exception('Ran out of colors on ' + line)
             if colors[index] > 0: # BUG TODO DONE BUG What???
                print(color_code(colors[index], args.blank) + group, end = '')
@@ -231,6 +309,7 @@ def match(args, line, regex, colors, local):
                         break
                   if not found:
                      if args.abort_no_match:
+                        exception = True
                         raise Exception('Could not match group')
                      print(color_code(light(COLORS['red']), args.blank) + group, end = '')
                #if args.verbose:
@@ -241,6 +320,7 @@ def match(args, line, regex, colors, local):
       else:
          print()
       if (index != len(colors) - 3 and index != len(colors) - 2 and index != len(colors) - 1) and args.abort_color:
+        exception = True
         raise Exception('Number of colors does not match') # BUG problem with 1,2c3,4
       return True
    return False
@@ -286,12 +366,18 @@ if __name__ == '__main__':
    parser.add_argument('-n', '--abort_color', action = 'store_true', help = 'Abort if number of colors don''t match')
    args = parser.parse_args()
 
-   #main(args)
+   main(args)
    try:
       main(args)
    except KeyboardInterrupt:
       pass
    except Exception as e:
+      if exception:
+         while True:
+            try:
+               line = input() # Empty the input buffer
+            except EOFError:
+               break
       if args.raise_exception:
          raise
       else:
