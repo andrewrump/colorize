@@ -16,6 +16,7 @@
 # Input without echo
 #
 # TODO:
+# tail -f of several files: ==> <filename> <==
 # Implement self test
 # Group matches and raise exception if match switches group
 # Implicit ^$ instead of explicit - or vice versa
@@ -43,6 +44,10 @@
 # Color field depending on value, i.e., 200 or 2.. green, 4.. red, ...
 # Is adding [..., []] to an array end up adding two elements - a Python bug or a Python misunderstanding? => mis
 
+DEBUG=0
+
+if DEBUG:
+   import pdb
 import argparse
 import re
 
@@ -241,7 +246,7 @@ matches += [[r'^( *?)(<)(.+?)(>)((.*?)(<)(.+?)(/?>))?$',
 
 matches += [[r'^#Software: Microsoft Internet Information Services [0-9]+\.[0-9]+$',
             [COLORS['green']]]]
-matches += [[r'^#Version [0-9]+\.[0-9]+$',
+matches += [[r'^(#Version [0-9]+\.[0-9]+)$',
             [COLORS['green']]]]
 matches += [[r'^#Date: [0-9]{2}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}$',
             [COLORS['green']]]]
@@ -249,18 +254,20 @@ matches += [[r'^#Fields: date time s-ip cs-method cs-uri-stem cs-uri-query s-por
             [COLORS['green']]]]
 matches += [[r'^([0-9]{4}-[0-9]{2}-[0-9]{2})( )([0-9]{2}:[0-9]{2}:[0-9]{2})( )' + \
              r'([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})( )(GET|POST)( )' + \
-             r'(/[a-zA-Z0-9_]+\.(asp|dt|ico))( )(-)( )([0-9]+)( )(-)( )' + \
+             r'(/[a-zA-Z0-9_]+\.(asp|dt|ico))( )(-|.*)( )([0-9]+)( )(-)( )' + \
              r'([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})( )(.+)( )' + \
-             r'([0-9]{3})( )(0)( )(0)( )([0-9]+)$',
+             r'([0-9]{3})( )(0)( )([0-9])( )([0-9]+)$',
+             #r'(/[a-zA-Z0-9_]+\.(asp|dt|ico))( )(-|(.*)\|[0-9]+\|[0-9a-f]+\|.*\|[0-9]+\|[0-9]+\|.*)( )([0-9]+)( )(-)( )' + \
             [COLORS['green'], COLORS['grey'], COLORS['blue'], COLORS['grey'],
              COLORS['magenta'], COLORS['grey'], COLORS['green'], COLORS['grey'],
-             light(COLORS['grey']), COLORS['green'], COLORS['grey'],
+             light(COLORS['grey']), COLORS['green'], light(COLORS['blue']),
              COLORS['red'], light(COLORS['green']), COLORS['grey'], COLORS['red'], COLORS['grey'],
              COLORS['green'], COLORS['grey'], COLORS['red'], COLORS['grey'],
-             COLORS['green'], COLORS['grey'], COLORS['red'],
-             [(r'^[12][0-9]{2}$', light(COLORS['green'])), (r'3[0-9]{2}$', light(COLORS['yellow'])),
-              (r'^408$', COLORS['green']), (r'^[45][0-9]{2}$', light(COLORS['red']))], COLORS['grey'],
+             COLORS['green'], COLORS['grey'], COLORS['red'], COLORS['red'],
              COLORS['magenta'], COLORS['grey'], COLORS['green']]]]
+             #[(r'^[12][0-9]{2}$', light(COLORS['green'])), (r'3[0-9]{2}$', light(COLORS['yellow'])),
+             # (r'^408$', COLORS['green']), (r'^[45][0-9]{2}$', light(COLORS['red']))], COLORS['grey'],
+             #COLORS['magenta'], COLORS['grey'], COLORS['green']]]]
 
 ##############################################################################################
 
@@ -294,26 +301,32 @@ def match(args, line, regex, colors, local):
                else:
                   exception = True
                   raise Exception('Ran out of colors on ' + line)
-            if colors[index] > 0: # BUG TODO DONE BUG What???
-               print(color_code(colors[index], args.blank) + group, end = '')
+            if type(colors[index]) is int:
+               if colors[index] > 0: # BUG TODO DONE BUG What???
+                  print(color_code(colors[index], args.blank) + group, end = '')
+               else:
+                  found = False
+                  for pattern in local:
+                     for regex, color in pattern:
+                        if args.verbose:
+                           print(regex, color)
+                        m = re.match(regex, group)
+                        if m:
+                           found = True
+                           print(color_code(color, args.blank) + group, end = '')
+                           break
+                     if not found:
+                        if args.abort_no_match:
+                           exception = True
+                           raise Exception('Could not match group')
+                        print(color_code(light(COLORS['red']), args.blank) + group, end = '')
+                  #if args.verbose:
+                  #   print(color_code(light(COLORS['green']), args.blank) + group, end = '')
             else:
-               found = False
-               for pattern in local:
-                  for regex, color in pattern:
-                     if args.verbose:
-                        print(regex, color)
-                     m = re.match(regex, group)
-                     if m:
-                        found = True
-                        print(color_code(color, args.blank) + group, end = '')
-                        break
-                  if not found:
-                     if args.abort_no_match:
-                        exception = True
-                        raise Exception('Could not match group')
-                     print(color_code(light(COLORS['red']), args.blank) + group, end = '')
-               #if args.verbose:
-               #   print(color_code(light(COLORS['green']), args.blank) + group, end = '')
+               if type(colors[index]) is list:
+                  raise Exception('Colors ' + str(colors[index]) + ' not implemented yet')
+               else:
+                  raise Exception('Unexpected type on colors: ' + str(type(colors[index])))
          work_around = group
       if not args.blank:
          print(color_code(blank = args.blank))
@@ -366,7 +379,7 @@ if __name__ == '__main__':
    parser.add_argument('-n', '--abort_color', action = 'store_true', help = 'Abort if number of colors don''t match')
    args = parser.parse_args()
 
-   main(args)
+   #main(args)
    try:
       main(args)
    except KeyboardInterrupt:
