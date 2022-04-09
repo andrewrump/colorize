@@ -6,11 +6,18 @@
 # Anything comming in goes out - unless not in a regex group
 #
 # BUGS:
+# XML/HTML miss the last > character
 # 144,145d104 does not change color correctly
 # - - matched using ( -)( -) are ignored
 # - - matched using ( -)( )(-) miss the space
 #
 # TODO:
+# Implement self test
+# Isn't black color missing?
+# Add XML/HTML support
+# Support free (XML/HTML) format, i.e., repeating pattern (use findall()/finditer()? & start()/end()/span())
+# Multiline support (probably require a total rewrite)
+# compile RE
 # If changes are diffs, i.e., + & - and minimal mark the differences using color and not the whole line
 # + Handle -w (which ignores any whitespace)
 #   8c8
@@ -32,8 +39,8 @@ import re
 
 ##############################################################################################
 
-VERSION = "Version: 1.10 (" + '__FILEDATE__' + ")"
-AUTHOR = "Copyright: Andrew Rump, 2019-2020"
+VERSION = "Version: 1.20 (" + '__FILEDATE__' + ")"
+AUTHOR = "Copyright: Andrew Rump, andrew@rump.dk, 2019-2021"
 
 ##############################################################################################
 
@@ -42,7 +49,9 @@ COLORS = {'grey': 30, 'red': 31, 'green': 32, 'yellow':33, 'blue': 34, 'magenta'
 def light(color):
    return color + 60
 
-def color_code(code = None):
+def color_code(code = None, blank = False):
+   if blank:
+      return ''
    if code is None:
       return '\033[0m'
    else:
@@ -172,6 +181,14 @@ matches += [[r'^(diff -r )(.+)( )(.+)$',
 #matches += [[r'^(total size is )([0-9]+)(  speedup is [0-9]+\.[0-9]+)$',
 #             [light(COLORS['grey']), COLORS['green'], light(COLORS['grey'])]]]
 
+# XML/HTML
+#matches += [[r'^(( *)(</?)([^>]+)(/?>)(([^<]+)?(<)([^>]+)(/?>))?)+$',
+#matches += [[r'^(( *)((<)(.+?)(>)((.+?)?(<)(.+?)(/?>))?|(<)(.+?)(/>)|(</)(.+?)(>)))+$',
+matches += [[r'^( *?)(<)(.+?)(>)((.*?)(<)(.+?)(/?>))?$',
+            [COLORS['grey'], light(COLORS['red']), COLORS['green'], light(COLORS['red']),
+             light(COLORS['green']),
+             COLORS['grey'], light(COLORS['red']), COLORS['green'], light(COLORS['red'])]]]
+
 ##############################################################################################
 
 def match(args, line, regex, colors, local):
@@ -180,8 +197,12 @@ def match(args, line, regex, colors, local):
       work_around = None
       index = -1
       for group in m.groups():
-         #print('{' + group + '}')
-         #if not work_around is None:
+         if args.verbose:
+            if group is None:
+               print('{ None }', end = '')
+            else:
+               print('{' + group + '}', end = '')
+         #if args.verbose and not work_around is None:
          #   print('[' + str(work_around) + '.' + group + '.' + str.strip(work_around) + ']')
          if group is None: # ()? gives None groups
             #print(group, work_around)
@@ -196,24 +217,29 @@ def match(args, line, regex, colors, local):
                else:
                   raise Exception('Ran out of colors on ' + line)
             if colors[index] > 0: # BUG TODO DONE BUG What???
-               print(color_code(colors[index]) + group, end = '')
+               print(color_code(colors[index], args.blank) + group, end = '')
             else:
                found = False
                for pattern in local:
                   for regex, color in pattern:
-                     #print(regex, color)
+                     if args.verbose:
+                        print(regex, color)
                      m = re.match(regex, group)
                      if m:
                         found = True
-                        print(color_code(color) + group, end = '')
+                        print(color_code(color, args.blank) + group, end = '')
                         break
                   if not found:
                      if args.abort_no_match:
                         raise Exception('Could not match group')
-                     print(color_code(light(COLORS['red'])) + group, end = '')
-               #print(color_code(light(COLORS['green'])) + group, end = '')
+                     print(color_code(light(COLORS['red']), args.blank) + group, end = '')
+               #if args.verbose:
+               #   print(color_code(light(COLORS['green']), args.blank) + group, end = '')
          work_around = group
-      print(color_code())
+      if not args.blank:
+         print(color_code(blank = args.blank))
+      else:
+         print()
       if (index != len(colors) - 3 and index != len(colors) - 2 and index != len(colors) - 1) and args.abort_color:
         raise Exception('Number of colors does not match') # BUG problem with 1,2c3,4
       return True
@@ -235,11 +261,11 @@ def main(args):
          if matched:
             break
       if not matched:
-         if not args.default_not_red:
-            print(color_code(light(COLORS['red'])), end = '')
+         if not args.blank and not args.default_not_red:
+            print(color_code(light(COLORS['red']), args.blank), end = '')
          print(line, end = '')
-         if not args.default_not_red:
-            print(color_code(), end = '')
+         if not args.blank and not args.default_not_red:
+            print(color_code(blank = args.blank), end = '')
          print()
          if args.abort_no_match:
             break
@@ -252,6 +278,9 @@ if __name__ == '__main__':
    parser.add_argument('-d', '--read_file', help = 'NOT IMPLEMENTED YET! Read file') # Multiple
    parser.add_argument('-r', '--default_not_red', action = 'store_true',
                        help = 'Don''t color anything not recognized with red')
+   parser.add_argument('-v', '--verbose', action = 'store_true', help = 'Verbose')
+   parser.add_argument('-b', '--blank', action = 'store_true', help = 'Blank - no color')
+   parser.add_argument('-e', '--raise_exception', action = 'store_true', help = '(Re)Raise exceptions to shell')
    parser.add_argument('-c', '--cycle_color', action = 'store_true', help = 'Cycle color if running out of colors')
    parser.add_argument('-a', '--abort_no_match', action = 'store_true', help = 'Abort if no match')
    parser.add_argument('-n', '--abort_color', action = 'store_true', help = 'Abort if number of colors don''t match')
@@ -263,10 +292,13 @@ if __name__ == '__main__':
    except KeyboardInterrupt:
       pass
    except Exception as e:
-      print()
-      print(color_code(light(COLORS['red'])), end = '')
-      print(e)
-      print(color_code(), end = '')
+      if args.raise_exception:
+         raise
+      else:
+         print()
+         print(color_code(light(COLORS['red']), args.blank), end = '')
+         print(e)
+         print(color_code(blank = args.blank), end = '')
 #Traceback (most recent call last):
 #  File "./colorize.py", line 80, in <module>
 #    main(args)
