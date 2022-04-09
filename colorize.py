@@ -23,6 +23,12 @@ COLORS = {'grey': 30, 'red': 31, 'green': 32, 'yellow':33, 'blue': 34, 'magenta'
 def light(color):
    return color + 60
 
+def color(code = None):
+   if code is None:
+      return '\033[0m'
+   else:
+      return '\033[' + str(abs(code)) + 'm'
+   
 ##############################################################################################
 
 # 192.168.1.225 - - [07/Oct/2019:11:18:43 +0200] "GET /api/Test?System=Test&TimeStamp=1570439920 HTTP/1.1" 200 395 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.90 Safari/537.36"
@@ -77,12 +83,11 @@ def match(args, line, colors, regex):
                   index = 0
                else:
                   raise Exception('Ran out of colors on ' + line)
-            if colors[index] < 0: # TODO
-               print('\033[1m', end = '')
-            print('\033[' + str(abs(colors[index])) + 'm', end = '')
-            print(group, end = '')
+            if colors[index] < 0: # TODO BUG What???
+               print(color(1), end = '')
+            print(color(colors[index]) + group, end = '')
          work_around = group
-      print('\033[0m')
+      print(color())
       return True
    return False
 
@@ -97,10 +102,10 @@ def main(args):
          if not match(args, line, PHP_COLOR, PHP_LINE):
             if not match(args, line, BAD_COLOR, BAD_LINE):
                if not args.default_red:
-                  print('\033[' + str(light(COLORS['red'])) + 'm', end = '')
+                  print(color(light(COLORS['red'])), end = '')
                print(line)
                if not args.default_red:
-                  print('\033[0m', end = '')
+                  print(color(), end = '')
 
 if __name__ == '__main__':
    parser = argparse.ArgumentParser(description = 'Colourize input')
@@ -117,9 +122,9 @@ if __name__ == '__main__':
       pass
    except Exception as e:
       print()
-      print('\033[' + str(light(COLORS['red'])) + 'm', end = '')
+      print(color(light(COLORS['red'])), end = '')
       print(e)
-      print('\033[0m', end = '')
+      print(color(), end = '')
 #Traceback (most recent call last):
 #  File "./colorize.py", line 80, in <module>
 #    main(args)
