@@ -11,6 +11,12 @@
 # - - matched using ( -)( )(-) miss the space
 #
 # TODO:
+# If changes are diffs, i.e., + & - and minimal mark the differences using color and not the whole line
+# + Handle -w (which ignores any whitespace)
+#   8c8
+#   <          <Reference URI="#idf656943cc2d2480eb03dd00f39312992">
+#   ---
+#   > <Reference URI="#id1f54b9ffa67c448790f84608bfff27a7">
 # Implement leading detection and/or naming of filters as part of arguments as some input are too easy to catch, e.g. copy
 # Support reading files
 # Detect if color (and other) codes are send through the pipe and either abort or support it
@@ -69,16 +75,17 @@ matches += [[r'^([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}|::1)( -)( )(-|[a
 # PHP Web log
 # [Mon Oct 07 11:18:43.234051 2019] [php7:notice] [pid 30304] [client 192.168.1.225:57283] PHP Notice:  Undefined index: Test in /var/www/api/mvc.php on line 94
 # [Thu Oct 10 13:25:14.534758 2019] [php7:error] [pid 25126] [client 192.168.1.225:56805] PHP Fatal error:  Can't use function return value in write context in /var/www/api/Model/MVCModel.php on line 45
+# [Thu Oct 10 13:16:53.535814 2019] [php7:error] [pid 17245] [client 192.168.1.225:56748] PHP Fatal error:  Uncaught Error: Call to a member function logStatus() on null in /var/www/api/Model/MVCModel.php:36\nStack trace:\n#0 /var/www/api/Controller/MVCController.php(31): Poly\\Model\\MVCModel->listActions(Object(Poly\\Core\\Autoloader), 'Test')\n#1 /var/www/api/mvc.php(184): Poly\\Controller\\MVCController->listActions(Object(Poly\\Core\\Autoloader), 'Test')\n#2 {main}\n  thrown in /var/www/api/Model/MVCModel.php on line 36
+# [Thu Feb 06 09:06:49.415526 2020] [php7:warn] [pid 7042] [client 192.168.168.169:64321] PHP Warning:  Invalid argument supplied for foreach() in /var/www/pleje_development/Controller/MenuController.php on line 387, referer: https://www.pleje.net/demo112/75d00129a99a1668b5323a4e80bf238a/MVC/Alpha/?Action=getAlpha&svr=0
+# [Tue Oct 22 13:10:22.090057 2019] [php7:warn] [pid 20603] [client 192.168.1.225:59385] PHP Warning:  Use of undefined constant URL_DIR - assumed 'URL_DIR' (this will throw an Error in a future version of PHP) in /var/www/api/Core/ExceptionHandler/View/ExceptionClassicView.php on line 31, referer: http://192.168.168.112/api/Test?System=test
 matches += [[r'^(\[[A-Z][a-z]{2} [A-Z][a-z]{2} [0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{6} [0-9]{4}\])' + \
              r'( \[php7:.+\])( \[pid [0-9]+\])( \[client [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}:[0-9]+\])' + \
              r'( PHP .+:  )(.+)( in .+)( on line [0-9]+)(, referer: .+)?$',
              [light(COLORS['green']), light(COLORS['yellow']), light(COLORS['green']), light(COLORS['magenta']),
-              light(COLORS['yellow']), -light(COLORS['red']), light(COLORS['green']), light(COLORS['yellow']),
+              light(COLORS['yellow']), light(COLORS['red']), light(COLORS['green']), light(COLORS['yellow']),
               light(COLORS['green'])]]]
 
 # PHP log
-# [Thu Oct 10 13:16:53.535814 2019] [php7:error] [pid 17245] [client 192.168.1.225:56748] PHP Fatal error:  Uncaught Error: Call to a member function logStatus() on null in /var/www/api/Model/MVCModel.php:36\nStack trace:\n#0 /var/www/api/Controller/MVCController.php(31): Poly\\Model\\MVCModel->listActions(Object(Poly\\Core\\Autoloader), 'Test')\n#1 /var/www/api/mvc.php(184): Poly\\Controller\\MVCController->listActions(Object(Poly\\Core\\Autoloader), 'Test')\n#2 {main}\n  thrown in /var/www/api/Model/MVCModel.php on line 36
-# [Tue Oct 22 13:10:22.090057 2019] [php7:warn] [pid 20603] [client 192.168.1.225:59385] PHP Warning:  Use of undefined constant URL_DIR - assumed 'URL_DIR' (this will throw an Error in a future version of PHP) in /var/www/api/Core/ExceptionHandler/View/ExceptionClassicView.php on line 31, referer: http://192.168.168.112/api/Test?System=test
 # [Mon Oct 07 16:19:24.263155 2019] [autoindex:error] [pid 1819] [client 192.168.1.225:60589] AH01276: Cannot serve directory /var/www/: No matching DirectoryIndex (index.html,index.cgi,index.pl,index.php,index.xhtml,index.htm) found, and server-generated directory index forbidden by Options directive
 #[Wed Jan 15 13:18:59.095275 2020] [autoindex:error] [pid 6908] [client 192.168.1.128:54837] AH01276: Cannot serve directory /var/www/julia/pleje_test/: No matching DirectoryIndex (index.html,index.cgi,index.pl,index.php,index.xhtml,index.htm) found, and server-generated directory index forbidden by Options directive
 matches += [[r'^(\[[A-Z][a-z]{2} [A-Z][a-z]{2} [0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{6} [0-9]{4}\])' + \
@@ -145,8 +152,8 @@ matches += [[r'^([A-Z][a-z]{2} [0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2})' + \
 matches += [[r'^.*([0-9]+(,[0-9]+)?)([acd])([0-9]+(,[0-9]+)?)$',
              [light(COLORS['red']), COLORS['red'], COLORS['red'], COLORS['yellow'], COLORS['green'], COLORS['green']]]]
 matches += [[r'^(---)$', [COLORS['yellow']]]]
-matches += [[r'^(< )(.+)$', [COLORS['red'], light(COLORS['red'])]]]
-matches += [[r'^(> )(.+)$', [COLORS['green'], light(COLORS['green'])]]]
+matches += [[r'^(< *)(.+)$', [COLORS['red'], light(COLORS['red'])]]]
+matches += [[r'^(> *)(.+)$', [COLORS['green'], light(COLORS['green'])]]]
 matches += [[r'^([\+\-])([^ ].+)$', [COLORS['red'], COLORS['green']]]]
 matches += [[r'^(\\ No newline at end of file)$', [COLORS['yellow']]]]
 matches += [[r'^(Only in )(.+)(:)(.+)$',
@@ -188,7 +195,7 @@ def match(args, line, regex, colors, local):
                   index = 0
                else:
                   raise Exception('Ran out of colors on ' + line)
-            if colors[index] > 0: # TODO DONE BUG What???
+            if colors[index] > 0: # BUG TODO DONE BUG What???
                print(color_code(colors[index]) + group, end = '')
             else:
                found = False
