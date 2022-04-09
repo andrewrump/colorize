@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 #
-# By Andrew Rump 2019 andrew@rump.dk
+# By Andrew Rump (andrew@rump.dk) October 2019
 #
 # Colourize input
 # Anything comming in goes out - unless not in a regex group
@@ -14,13 +14,7 @@ import re
 
 ##############################################################################################
 
-GREY = 30
-RED = 31
-GREEN = 32
-YELLOW = 33
-BLUE = 34
-MAGENTA = 35
-CYAN = 36
+COLORS = {'grey': 30, 'red': 31, 'green': 32, 'yellow':33, 'blue': 34, 'magenta': 35, 'cyan': 36}
 
 def light(color):
    return color + 60
@@ -28,24 +22,29 @@ def light(color):
 ##############################################################################################
 
 # 192.168.1.225 - - [07/Oct/2019:11:18:43 +0200] "GET /api/Test?System=Test&TimeStamp=1570439920 HTTP/1.1" 200 395 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.90 Safari/537.36"
+# 192.168.1.225 - - [08/Oct/2019:15:32:19 +0200] "-" 408 0 "-" "-"
 WWW_LINE = r'^([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})( -)( (-|[a-z]+))' + \
            r'( \[[0-9]{2}/[A-Z][a-z]{2}/[0-9]{4}:[0-9]{2}:[0-9]{2}:[0-9]{2} \+0200\])' + \
-           r'( ")((DELETE|GET|PATCH|POST|PUT) )(/.+)(" )([0-9]{3})( [0-9]+)( "-")( ")(.+)(")$'
-WWW_COLORS = [light(MAGENTA), light(YELLOW), light(RED), light(GREEN), light(GREY),
-              light(MAGENTA), light(YELLOW), light(GREY), light(GREEN), light(GREY),
-              light(MAGENTA), light(GREY), GREEN, light(GREY)]
+           r'( ")((DELETE|GET|INVALID|PATCH|POST|PUT) )?(-|/.+)(" )([0-9]{3})( [0-9]+)( ")(.+)(")( ")(.+)(")$'
+WWW_COLORS = [light(COLORS['magenta']), light(COLORS['yellow']), light(COLORS['red']),
+              light(COLORS['green']), light(COLORS['grey']), light(COLORS['magenta']),
+              light(COLORS['yellow']), light(COLORS['grey']), light(COLORS['green']),
+              light(COLORS['grey']), light(COLORS['grey']), light(COLORS['green']), light(COLORS['grey']),
+              light(COLORS['grey']), COLORS['green'], light(COLORS['grey'])]
 
 # [Mon Oct 07 11:18:43.234051 2019] [php7:notice] [pid 30304] [client 192.168.1.225:57283] PHP Notice:  Undefined index: Test in /var/www/api/mvc.php on line 94
 PHP_LINE = r'^(\[[A-Z][a-z]{2} [A-Z][a-z]{2} [0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{6} [0-9]{4}\])' + \
-           r'( \[php7:notice\])( \[pid [0-9]+\])( \[client [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}:[0-9]+\])' + \
-           r'( PHP Notice:  )(.+)( on line [0-9]+)$'
-PHP_COLOR = [light(GREEN), light(YELLOW), light(GREEN), light(MAGENTA), light(YELLOW), -light(RED), light(YELLOW)]
+           r'( \[php7:(notice|warn)\])( \[pid [0-9]+\])( \[client [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}:[0-9]+\])' + \
+           r'( PHP (Notice|Warning):  )(.+)( in .+)( on line [0-9]+)$'
+PHP_COLOR = [light(COLORS['green']), light(COLORS['yellow']), light(COLORS['yellow']), light(COLORS['green']),
+             light(COLORS['magenta']), light(COLORS['yellow']), light(COLORS['yellow']), -light(COLORS['red']), light(COLORS['green']), light(COLORS['yellow'])]
 
 # [Mon Oct 07 16:19:24.263155 2019] [autoindex:error] [pid 1819] [client 192.168.1.225:60589] AH01276: Cannot serve directory /var/www/: No matching DirectoryIndex (index.html,index.cgi,index.pl,index.php,index.xhtml,index.htm) found, and server-generated directory index forbidden by Options directive
 BAD_LINE = r'^(\[[A-Z][a-z]{2} [A-Z][a-z]{2} [0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{6} [0-9]{4}\])' + \
            r'( \[autoindex:error\])( \[pid [0-9]+\])( \[client [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}:[0-9]+\])' + \
            r'( AH01276: Cannot serve directory /var/www/: No matching DirectoryIndex \(index.html,index.cgi,index.pl,index.php,index.xhtml,index.htm\) found, and server-generated directory index forbidden by Options directive)$'
-BAD_COLOR = [light(GREEN), light(YELLOW), light(GREEN), light(MAGENTA), light(GREY)]
+BAD_COLOR = [light(COLORS['green']), light(COLORS['yellow']), light(COLORS['green']),
+             light(COLORS['magenta']), light(COLORS['grey'])]
 
 ##############################################################################################
 
@@ -56,9 +55,14 @@ def match(args, line, colors, regex):
       work_around = None
       index = -1
       for group in m.groups():
+         print('[' + group + ']')
          #if not work_around is None:
          #   print('[' + str(work_around) + '.' + group + '.' + str.strip(work_around) + ']')
-         if work_around is None or len(work_around) == len(group) or \
+         if group is None:
+            if work_around != group:
+               work_around = group # BUG ()? gives None groups
+               index += 1
+         elif work_around is None or len(work_around) == len(group) or \
             str.strip(work_around) != group:
             work_around = group # BUG ((|)) define 2 groups not one!
             index += 1
@@ -86,7 +90,7 @@ def main(args):
          if not match(args, line, PHP_COLOR, PHP_LINE):
             if not match(args, line, BAD_COLOR, BAD_LINE):
                if not args.default_red:
-                  print('\033[' + str(light(RED)) + 'm', end = '')
+                  print('\033[' + str(light(COLORS['red'])) + 'm', end = '')
                print(line)
                if not args.default_red:
                   print('\033[0m', end = '')
@@ -99,14 +103,16 @@ if __name__ == '__main__':
    #parser.add_argument
    args = parser.parse_args()
    #print(args)
-   main(args)
-   #try:
-   #   main(args)
-   #except Exception as e:
-   #   print()
-   #   print('\033[' + str(light(RED)) + 'm', end = '')
-   #   print(e)
-   #   print('\033[0m', end = '')
+   #main(args)
+   try:
+      main(args)
+   except KeyboardInterrupt:
+      pass
+   except Exception as e:
+      print()
+      print('\033[' + str(light(COLORS['red'])) + 'm', end = '')
+      print(e)
+      print('\033[0m', end = '')
 #Traceback (most recent call last):
 #  File "./colorize.py", line 80, in <module>
 #    main(args)
