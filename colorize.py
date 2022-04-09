@@ -73,8 +73,8 @@ COLORS = {GREY: 30, RED: 31, GREEN: 32, YELLOW:33, BLUE: 34, MAGENTA: 35, CYAN: 
 def light(color):
    return color + 60
 
-def color_code(code = None, blank = False):
-   if blank:
+def color_code(args, code = None):
+   if args.blank:
       return ''
    if code is None:
       return '\033[0m'
@@ -305,33 +305,33 @@ def colorize(args, line):
    # Handle overlapping matches
    matches = {}
    #if args.grey != None:
-   #   matches = colormatch(args.grey, color_code(COLORS[GREY], args.blank), matches, line)
+   #   matches = colormatch(args.grey, color_code(args, COLORS[GREY]), matches, line)
    #if args.light_grey != None:
-   #   matches = colormatch(args.light_grey, color_code(light(COLORS[GREY]), args.blank), matches, line)
+   #   matches = colormatch(args.light_grey, color_code(args, light(COLORS[GREY])), matches, line)
    if args.red != None:
-      matches = colormatch(args.red, color_code(COLORS[RED], args.blank), matches, line)
+      matches = colormatch(args.red, color_code(args, COLORS[RED]), matches, line)
    if args.light_red != None:
-      matches = colormatch(args.light_red, color_code(light(COLORS[RED]), args.blank), matches, line)
+      matches = colormatch(args.light_red, color_code(args, light(COLORS[RED])), matches, line)
    if args.green != None:
-      matches = colormatch(args.green, color_code(COLORS[GREEN], args.blank), matches, line)
+      matches = colormatch(args.green, color_code(args, COLORS[GREEN]), matches, line)
    if args.light_green != None:
-      matches = colormatch(args.light_green, color_code(light(COLORS[GREEN]), args.blank), matches, line)
+      matches = colormatch(args.light_green, color_code(args, light(COLORS[GREEN])), matches, line)
    if args.yellow != None:
-      matches = colormatch(args.yellow, color_code(COLORS[YELLOW], args.blank), matches, line)
+      matches = colormatch(args.yellow, color_code(args, COLORS[YELLOW]), matches, line)
    if args.light_yellow != None:
-      matches = colormatch(args.light_yellow, color_code(light(COLORS[YELLOW]), args.blank), matches, line)
+      matches = colormatch(args.light_yellow, color_code(args, light(COLORS[YELLOW])), matches, line)
    if args.blue != None:
-      matches = colormatch(args.blue, color_code(COLORS[BLUE], args.blank), matches, line)
+      matches = colormatch(args.blue, color_code(args, COLORS[BLUE]), matches, line)
    if args.light_blue != None:
-      matches = colormatch(args.light_blue, color_code(light(COLORS[BLUE]), args.blank), matches, line)
+      matches = colormatch(args.light_blue, color_code(args, light(COLORS[BLUE])), matches, line)
    if args.magenta != None:
-      matches = colormatch(args.magenta, color_code(COLORS[MAGENTA], args.blank), matches, line)
+      matches = colormatch(args.magenta, color_code(args, COLORS[MAGENTA]), matches, line)
    if args.light_magenta != None:
-      matches = colormatch(args.light_magenta, color_code(light(COLORS[MAGENTA]), args.blank), matches, line)
+      matches = colormatch(args.light_magenta, color_code(args, light(COLORS[MAGENTA])), matches, line)
    if args.cyan != None:
-      matches = colormatch(args.cyan, color_code(COLORS[CYAN], args.blank), matches, line)
+      matches = colormatch(args.cyan, color_code(args, COLORS[CYAN]), matches, line)
    if args.light_cyan != None:
-      matches = colormatch(args.light_cyan, color_code(light(COLORS[CYAN]), args.blank), matches, line)
+      matches = colormatch(args.light_cyan, color_code(args, light(COLORS[CYAN])), matches, line)
 
    if args.verbose:
       print(matches)
@@ -342,7 +342,7 @@ def colorize(args, line):
          print(key)
       if key + matches[key][0] > pos:
          raise Exception('Colorclash ' + line)
-      line = line[:key + matches[key][0]] + color_code(blank = args.blank) + line[key + matches[key][0]:]
+      line = line[:key + matches[key][0]] + color_code(args) + line[key + matches[key][0]:]
       line = line[:key] + matches[key][1] + line[key:]
       pos = key
       if args.verbose:
@@ -383,7 +383,7 @@ def match(args, line, regex, colors, local):
                   raise Exception('Ran out of colors on ' + line)
             if type(colors[index]) is int:
                if colors[index] > 0: # BUG TODO DONE BUG What???
-                  print(color_code(colors[index], args.blank) + colorize(args, group), end = '')
+                  print(color_code(args, colors[index]) + colorize(args, group), end = '')
                else:
                   found = False
                   for pattern in local:
@@ -393,25 +393,22 @@ def match(args, line, regex, colors, local):
                         m = re.match(regex, group)
                         if m:
                            found = True
-                           print(color_code(color, args.blank) + colorize(args, group), end = '')
+                           print(color_code(args, color) + colorize(args, group), end = '')
                            break
                      if not found:
                         if args.abort_no_match:
                            exception = True
                            raise Exception('Could not match group')
-                        print(color_code(light(COLORS[RED]), args.blank) + group, end = '')
+                        print(color_code(args, light(COLORS[RED])) + group, end = '')
                   #if args.verbose:
-                  #   print(color_code(light(COLORS[GREEN]), args.blank) + group, end = '')
+                  #   print(color_code(args, light(COLORS[GREEN])) + group, end = '')
             else:
                if type(colors[index]) is list:
                   raise Exception('Colors ' + str(colors[index]) + ' not implemented yet')
                else:
                   raise Exception('Unexpected type on colors: ' + str(type(colors[index])))
          work_around = group
-      if not args.blank:
-         print(color_code(blank = args.blank))
-      else:
-         print()
+      print(color_code(args))
       if (index != len(colors) - 3 and index != len(colors) - 2 and index != len(colors) - 1) and args.abort_color:
         exception = True
         raise Exception('Number of colors does not match') # BUG problem with 1,2c3,4
@@ -435,10 +432,10 @@ def main(args):
             break
       if not matched:
          if not args.blank and not args.default_not_red:
-            print(color_code(light(COLORS[RED]), args.blank), end = '')
+            print(color_code(args, light(COLORS[RED])), end = '')
          print(line, end = '')
          if not args.blank and not args.default_not_red:
-            print(color_code(blank = args.blank), end = '')
+            print(color_code(args), end = '')
          print()
          if args.abort_no_match:
             break
@@ -489,9 +486,9 @@ if __name__ == '__main__':
          raise
       else:
          print()
-         print(color_code(light(COLORS[RED]), args.blank), end = '')
+         print(color_code(args, light(COLORS[RED])), end = '')
          print(e)
-         print(color_code(blank = args.blank), end = '')
+         print(color_code(args), end = '')
 #Traceback (most recent call last):
 #  File "./colorize.py", line 80, in <module>
 #    main(args)
