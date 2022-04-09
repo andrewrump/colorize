@@ -5,6 +5,10 @@
 # Colourize input
 # Anything comming in goes out - unless not in a regex group
 #
+# BUGS
+# - - matched using ( -)( -) are ignored
+# - - matched using ( -)( )(-) miss the space
+#
 # TODO
 # Support the current terminal
 # Support bold 1, dim 2, underline 4, blink 5, reverse 7 & hidden 8
@@ -23,22 +27,26 @@ def light(color):
 
 # 192.168.1.225 - - [07/Oct/2019:11:18:43 +0200] "GET /api/Test?System=Test&TimeStamp=1570439920 HTTP/1.1" 200 395 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.90 Safari/537.36"
 # 192.168.1.225 - - [08/Oct/2019:15:32:19 +0200] "-" 408 0 "-" "-"
-WWW_LINE = r'^([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})( -)( (-|[a-z]+))' + \
-           r'( \[[0-9]{2}/[A-Z][a-z]{2}/[0-9]{4}:[0-9]{2}:[0-9]{2}:[0-9]{2} \+0200\])' + \
+# 192.168.1.225 - - [28/Oct/2019:08:55:23 +0100] "GET /favicon.ico HTTP/1.1" 404 494 "http://192.168.168.112/api/Test?System=test" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.70 Safari/537.36"
+WWW_LINE = r'^([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})( -)( )(-|[a-z]+)' + \
+           r'( \[[0-9]{2}/[A-Z][a-z]{2}/[0-9]{4}:[0-9]{2}:[0-9]{2}:[0-9]{2} (\+|\-)[0-9]{4}\])' + \
            r'( ")((DELETE|GET|INVALID|PATCH|POST|PUT) )?(-|/.+)(" )([0-9]{3})( [0-9]+)( ")(.+)(")( ")(.+)(")$'
-WWW_COLORS = [light(COLORS['magenta']), light(COLORS['yellow']), light(COLORS['red']),
+WWW_COLORS = [light(COLORS['magenta']), light(COLORS['yellow']), light(COLORS['red']), light(COLORS['red']),
               light(COLORS['green']), light(COLORS['grey']), light(COLORS['magenta']),
               light(COLORS['yellow']), light(COLORS['grey']), light(COLORS['green']),
               light(COLORS['grey']), light(COLORS['grey']), light(COLORS['green']), light(COLORS['grey']),
               light(COLORS['grey']), COLORS['green'], light(COLORS['grey'])]
 
 # [Mon Oct 07 11:18:43.234051 2019] [php7:notice] [pid 30304] [client 192.168.1.225:57283] PHP Notice:  Undefined index: Test in /var/www/api/mvc.php on line 94
+# [Thu Oct 10 13:25:14.534758 2019] [php7:error] [pid 25126] [client 192.168.1.225:56805] PHP Fatal error:  Can't use function return value in write context in /var/www/api/Model/MVCModel.php on line 45
 PHP_LINE = r'^(\[[A-Z][a-z]{2} [A-Z][a-z]{2} [0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{6} [0-9]{4}\])' + \
-           r'( \[php7:(notice|warn)\])( \[pid [0-9]+\])( \[client [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}:[0-9]+\])' + \
-           r'( PHP (Notice|Warning):  )(.+)( in .+)( on line [0-9]+)$'
-PHP_COLOR = [light(COLORS['green']), light(COLORS['yellow']), light(COLORS['yellow']), light(COLORS['green']),
-             light(COLORS['magenta']), light(COLORS['yellow']), light(COLORS['yellow']), -light(COLORS['red']), light(COLORS['green']), light(COLORS['yellow'])]
-
+           r'( \[php7:.*\])( \[pid [0-9]+\])( \[client [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}:[0-9]+\])' + \
+           r'( PHP .*:  )(.+)( in .+)( on line [0-9]+)(, referer: .+)?$'
+PHP_COLOR = [light(COLORS['green']), light(COLORS['yellow']), light(COLORS['green']), light(COLORS['magenta']),
+             light(COLORS['yellow']), -light(COLORS['red']), light(COLORS['green']), light(COLORS['yellow']),
+             light(COLORS['green'])]
+# [Thu Oct 10 13:16:53.535814 2019] [php7:error] [pid 17245] [client 192.168.1.225:56748] PHP Fatal error:  Uncaught Error: Call to a member function logStatus() on null in /var/www/api/Model/MVCModel.php:36\nStack trace:\n#0 /var/www/api/Controller/MVCController.php(31): Poly\\Model\\MVCModel->listActions(Object(Poly\\Core\\Autoloader), 'Test')\n#1 /var/www/api/mvc.php(184): Poly\\Controller\\MVCController->listActions(Object(Poly\\Core\\Autoloader), 'Test')\n#2 {main}\n  thrown in /var/www/api/Model/MVCModel.php on line 36
+# [Tue Oct 22 13:10:22.090057 2019] [php7:warn] [pid 20603] [client 192.168.1.225:59385] PHP Warning:  Use of undefined constant URL_DIR - assumed 'URL_DIR' (this will throw an Error in a future version of PHP) in /var/www/api/Core/ExceptionHandler/View/ExceptionClassicView.php on line 31, referer: http://192.168.168.112/api/Test?System=test
 # [Mon Oct 07 16:19:24.263155 2019] [autoindex:error] [pid 1819] [client 192.168.1.225:60589] AH01276: Cannot serve directory /var/www/: No matching DirectoryIndex (index.html,index.cgi,index.pl,index.php,index.xhtml,index.htm) found, and server-generated directory index forbidden by Options directive
 BAD_LINE = r'^(\[[A-Z][a-z]{2} [A-Z][a-z]{2} [0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{6} [0-9]{4}\])' + \
            r'( \[autoindex:error\])( \[pid [0-9]+\])( \[client [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}:[0-9]+\])' + \
@@ -55,16 +63,14 @@ def match(args, line, colors, regex):
       work_around = None
       index = -1
       for group in m.groups():
-         print('[' + group + ']')
+         #print('{' + group + '}')
          #if not work_around is None:
          #   print('[' + str(work_around) + '.' + group + '.' + str.strip(work_around) + ']')
-         if group is None:
+         if group is None: # ()? gives None groups
             if work_around != group:
-               work_around = group # BUG ()? gives None groups
                index += 1
-         elif work_around is None or len(work_around) == len(group) or \
-            str.strip(work_around) != group:
-            work_around = group # BUG ((|)) define 2 groups not one!
+         elif work_around is None or work_around.find(group) == -1 or str.strip(group) == '': # Work around using ( )
+            # BUG ((|)) define 2 groups not one!
             index += 1
             if index >= len(colors):
                if args.cycle_color:
@@ -75,6 +81,7 @@ def match(args, line, colors, regex):
                print('\033[1m', end = '')
             print('\033[' + str(abs(colors[index])) + 'm', end = '')
             print(group, end = '')
+         work_around = group
       print('\033[0m')
       return True
    return False
