@@ -11,6 +11,7 @@
 # - - matched using ( -)( )(-) miss the space
 #
 # TODO:
+# Implement leading detection and/or naming of filters as part of arguments as some input are too easy to catch, e.g. copy
 # Support reading files
 # Detect if color (and other) codes are send through the pipe and either abort or support it
 # Support the current terminal settings
@@ -22,6 +23,11 @@
 
 import argparse
 import re
+
+##############################################################################################
+
+VERSION = "Version: 1.10 (" + '__FILEDATE__' + ")"
+AUTHOR = "Copyright: Andrew Rump, 2019-2020"
 
 ##############################################################################################
 
@@ -46,9 +52,11 @@ matches = [] # When adding (not extending) the list of matches make sure to add 
 # 192.168.1.225 - - [08/Oct/2019:15:32:19 +0200] "-" 408 0 "-" "-"
 # 192.168.1.225 - - [28/Oct/2019:08:55:23 +0100] "GET /favicon.ico HTTP/1.1" 404 494 "http://192.168.168.112/api/Test?System=test" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.70 Safari/537.36"
 #::1 - - [09/Dec/2019:09:54:32 +0000] "OPTIONS * HTTP/1.0" 200 126 "-" "Apache/2.4.25 (Debian) (internal dummy connection)"
+#192.168.168.169 - - [13/Jan/2020:10:42:16 +0100] "HEAD /pleje_development/Resource/html5/phantom/svg/zonesScreen1.svg HTTP/1.1" 200 292 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36 Edge/18.18362"
+
 matches += [[r'^([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}|::1)( -)( )(-|[a-z]+)' + \
              r'( \[[0-9]{2}/[A-Z][a-z]{2}/[0-9]{4}:[0-9]{2}:[0-9]{2}:[0-9]{2} (\+|\-)[0-9]{4}\])' + \
-             r'( ")((DELETE|GET|INVALID|OPTIONS|PATCH|POST|PUT) )?(-|\* HTTP/1\.0|/.* HTTP/1\.1)(" )([0-9]{3})( [0-9]+)( ")(.+)(")( ")(.+)(")$',
+             r'( ")((DELETE|GET|HEAD|INVALID|OPTIONS|PATCH|POST|PUT) )?(-|\* HTTP/1\.0|/.* HTTP/1\.[01])(" )([0-9]{3})( [0-9]+)( ")(.+)(")( ")(.+)(")$',
              [light(COLORS['magenta']), light(COLORS['yellow']), light(COLORS['red']), light(COLORS['red']),
               light(COLORS['green']), light(COLORS['grey']), light(COLORS['magenta']),
               light(COLORS['yellow']), light(COLORS['grey']), 0,
@@ -72,11 +80,19 @@ matches += [[r'^(\[[A-Z][a-z]{2} [A-Z][a-z]{2} [0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{
 # [Thu Oct 10 13:16:53.535814 2019] [php7:error] [pid 17245] [client 192.168.1.225:56748] PHP Fatal error:  Uncaught Error: Call to a member function logStatus() on null in /var/www/api/Model/MVCModel.php:36\nStack trace:\n#0 /var/www/api/Controller/MVCController.php(31): Poly\\Model\\MVCModel->listActions(Object(Poly\\Core\\Autoloader), 'Test')\n#1 /var/www/api/mvc.php(184): Poly\\Controller\\MVCController->listActions(Object(Poly\\Core\\Autoloader), 'Test')\n#2 {main}\n  thrown in /var/www/api/Model/MVCModel.php on line 36
 # [Tue Oct 22 13:10:22.090057 2019] [php7:warn] [pid 20603] [client 192.168.1.225:59385] PHP Warning:  Use of undefined constant URL_DIR - assumed 'URL_DIR' (this will throw an Error in a future version of PHP) in /var/www/api/Core/ExceptionHandler/View/ExceptionClassicView.php on line 31, referer: http://192.168.168.112/api/Test?System=test
 # [Mon Oct 07 16:19:24.263155 2019] [autoindex:error] [pid 1819] [client 192.168.1.225:60589] AH01276: Cannot serve directory /var/www/: No matching DirectoryIndex (index.html,index.cgi,index.pl,index.php,index.xhtml,index.htm) found, and server-generated directory index forbidden by Options directive
+#[Wed Jan 15 13:18:59.095275 2020] [autoindex:error] [pid 6908] [client 192.168.1.128:54837] AH01276: Cannot serve directory /var/www/julia/pleje_test/: No matching DirectoryIndex (index.html,index.cgi,index.pl,index.php,index.xhtml,index.htm) found, and server-generated directory index forbidden by Options directive
 matches += [[r'^(\[[A-Z][a-z]{2} [A-Z][a-z]{2} [0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{6} [0-9]{4}\])' + \
              r'( \[autoindex:error\])( \[pid [0-9]+\])( \[client [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}:[0-9]+\])' + \
-             r'( AH01276: Cannot serve directory /var/www/: No matching DirectoryIndex \(index.html,index.cgi,index.pl,index.php,index.xhtml,index.htm\) found, and server-generated directory index forbidden by Options directive)$',
+             r'( AH01276: Cannot serve directory )(.*)(: No matching DirectoryIndex \(index.html,index.cgi,index.pl,index.php,index.xhtml,index.htm\) found, and server-generated directory index forbidden by Options directive)$',
              [light(COLORS['green']), light(COLORS['yellow']), light(COLORS['green']),
-              light(COLORS['magenta']), light(COLORS['grey'])]]]
+              light(COLORS['magenta']), light(COLORS['yellow']), light(COLORS['red']), light(COLORS['yellow'])]]]
+
+#[Tue Jan 14 14:13:59.450034 2020] [php7:error] [pid 30623] [client 192.168.168.169:64941] script '/var/www/pleje_development/wp-login.php' not found or unable to stat
+matches += [[r'^(\[[A-Z][a-z]{2} [A-Z][a-z]{2} [0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{6} [0-9]{4}\])' + \
+             r'( \[php7:error\])( \[pid [0-9]+\])( \[client [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}:[0-9]+\])' + \
+             r'( script \'.*\' not found or unable to stat)$',
+             [light(COLORS['green']), light(COLORS['yellow']), light(COLORS['green']),
+              light(COLORS['magenta']), light(COLORS['red'])]]]
 
 # Apache2 log
 #[Fri Dec 06 13:13:31.319105 2019] [mpm_prefork:notice] [pid 594] AH00169: caught SIGTERM, shutting down
@@ -141,6 +157,14 @@ matches += [[r'^(Binary files )(.+)( and )(.+)( differ)$',
 matches += [[r'^(diff -r )(.+)( )(.+)$',
              [light(COLORS['yellow']), light(COLORS['red']), COLORS['green'], light(COLORS['green'])]]]
 
+## copy
+#matches += [[r'^sending incremental file list$', [light(COLORS['grey'])]]]
+#matches += [[r'^(sent )([0-9]+)( bytes  received )([0-9]+)( bytes  [0-9]+\.[0-9]+ bytes/sec)$',
+#             [light(COLORS['grey']), COLORS['green'], light(COLORS['grey']), COLORS['green'], light(COLORS['grey'])]]]
+#matches += [[r'^.+\.php'], [light(COLORS['green'])]]]
+#matches += [[r'^(total size is )([0-9]+)(  speedup is [0-9]+\.[0-9]+)$',
+#             [light(COLORS['grey']), COLORS['green'], light(COLORS['grey'])]]]
+
 ##############################################################################################
 
 def match(args, line, regex, colors, local):
@@ -191,6 +215,7 @@ def match(args, line, regex, colors, local):
 ##############################################################################################
 
 def main(args):
+   print(__file__ + ' ' + VERSION + ' ' + AUTHOR)
    while True:
       try:
          line = input()
