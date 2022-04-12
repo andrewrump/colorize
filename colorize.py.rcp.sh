@@ -1,5 +1,5 @@
 #!/bin/bash
-COLORIZE="/mnt/c/Users/and_p/Dropbox/src/Python/colorize.py"
+COLORIZE="/mnt/c/Users/and_p/Dropbox/src/Python/colorize/colorize.py"
 LOCAL_BIN="/usr/local/bin/colorize"
 
 rcp $COLORIZE root@192.168.168.112:$LOCAL_BIN

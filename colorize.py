@@ -6,7 +6,7 @@
 # Anything comming in goes out - unless not in a regex group
 #
 # BUGS:
-# diff: red,yellow,green give different result for 204c204 and 210,211c210,211
+# xxxx> give black output?
 # In case of errors read the rest of the input before terminating
 ## Bug - the bugfix cause the program to hang on keyboard input!?!
 # Ran out of colors does not clear the input buffer
@@ -18,7 +18,7 @@
 #
 # TODO:
 # Accept words to (re)colorize as argument
-# XML pattern
+# XML & JSON pattern (require grouping)
 # tail -f of several files: ==> <filename> <==
 # Implement self test
 # Group matches and raise exception if match switches group
@@ -44,6 +44,7 @@
 # Support bold 1, dim 2, underline 4, blink 5, reverse 7 & hidden 8
 #
 # DONE:
+# diff: red,yellow,green give different result for 204c204 and 210,211c210,211
 # Color field depending on value, i.e., 200 or 2.. green, 4.. red, ...
 # Is adding [..., []] to an array end up adding two elements - a Python bug or a Python misunderstanding? => mis
 
@@ -84,6 +85,7 @@ def color_code(args, code = None):
 ##############################################################################################
 
 matches = [] # When adding (not extending) the list of matches make sure to add an array of arrays [[]]
+tests = []
 
 # Web log
 # TODO Colorsplit HTTP/1\.(01) from URL
@@ -104,6 +106,7 @@ matches += [[r'^([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}|::1)( -)( )(-|[a
               [(r'^[12][0-9]{2}$', light(COLORS[GREEN])), (r'3[0-9]{2}$', light(COLORS[YELLOW])),
                (r'^408$', COLORS[GREEN]), (r'^[45][0-9]{2}$', light(COLORS[RED]))]
            ]]
+tests += ['192.168.1.225 - - [08/Oct/2019:15:32:19 +0200] "-" 408 0 "-" "-"']
 
 # PHP Web log
 # [Mon Oct 07 11:18:43.234051 2019] [php7:notice] [pid 30304] [client 192.168.1.225:57283] PHP Notice:  Undefined index: Test in /var/www/api/mvc.php on line 94
@@ -117,6 +120,7 @@ matches += [[r'^(\[[A-Z][a-z]{2} [A-Z][a-z]{2} [0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{
              [light(COLORS[GREEN]), light(COLORS[YELLOW]), light(COLORS[GREEN]), light(COLORS[MAGENTA]),
               light(COLORS[YELLOW]), light(COLORS[RED]), light(COLORS[GREEN]), light(COLORS[YELLOW]),
               light(COLORS[GREEN])]]]
+tests += ['[Mon Oct 07 11:18:43.234051 2019] [php7:notice] [pid 30304] [client 192.168.1.225:57283] PHP Notice:  Undefined index: Test in /var/www/api/mvc.php on line 94']
 
 # PHP log
 # [Mon Oct 07 16:19:24.263155 2019] [autoindex:error] [pid 1819] [client 192.168.1.225:60589] AH01276: Cannot serve directory /var/www/: No matching DirectoryIndex (index.html,index.cgi,index.pl,index.php,index.xhtml,index.htm) found, and server-generated directory index forbidden by Options directive
@@ -126,6 +130,7 @@ matches += [[r'^(\[[A-Z][a-z]{2} [A-Z][a-z]{2} [0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{
              r'( AH01276: Cannot serve directory )(.*)(: No matching DirectoryIndex \(index.html,index.cgi,index.pl,index.php,index.xhtml,index.htm\) found, and server-generated directory index forbidden by Options directive)$',
              [light(COLORS[GREEN]), light(COLORS[YELLOW]), light(COLORS[GREEN]),
               light(COLORS[MAGENTA]), light(COLORS[YELLOW]), light(COLORS[RED]), light(COLORS[YELLOW])]]]
+#tests += []
 
 #[Tue Jan 14 14:13:59.450034 2020] [php7:error] [pid 30623] [client 192.168.168.169:64941] script '/var/www/pleje_development/wp-login.php' not found or unable to stat
 matches += [[r'^(\[[A-Z][a-z]{2} [A-Z][a-z]{2} [0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{6} [0-9]{4}\])' + \
@@ -133,6 +138,7 @@ matches += [[r'^(\[[A-Z][a-z]{2} [A-Z][a-z]{2} [0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{
              r'( script \'.*\' not found or unable to stat)$',
              [light(COLORS[GREEN]), light(COLORS[YELLOW]), light(COLORS[GREEN]),
               light(COLORS[MAGENTA]), light(COLORS[RED])]]]
+#tests += []
 
 # Apache2 log
 #[Fri Dec 06 13:13:31.319105 2019] [mpm_prefork:notice] [pid 594] AH00169: caught SIGTERM, shutting down
@@ -142,6 +148,7 @@ matches += [[r'^(\[[A-Z][a-z]{2} [A-Z][a-z]{2} [0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{
              r'( \[(core|mpm_prefork):notice\])( \[pid [0-9]+\])' + \
              r'( AH[0-9]+: .+)$',
              [light(COLORS[GREEN]), light(COLORS[YELLOW]), light(COLORS[GREY]), light(COLORS[MAGENTA])]]]
+#tests += []
 
 # SimpleSAMLphp web log
 #[Mon Dec 09 09:54:24.626515 2019] [php7:notice] [pid 11588] [client 192.168.1.214:55251] SimpleSAMLphp ERR [c383cf2251] Missing default-enable or default-disable file for the module authfacebook
@@ -180,6 +187,7 @@ matches += [[r'^([A-Z][a-z]{2} [0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2})' + \
              r')$)',
              #' + r'|' + \
              [light(COLORS[GREEN]), light(COLORS[YELLOW]), light(COLORS[MAGENTA]), light(COLORS[GREEN])]]]
+#tests += []
 
 # diff
 #matches += [[r'^.*([0-9]+(,[0-9]+)?)([acd])([0-9]+(,[0-9]+)?)$',
@@ -197,6 +205,7 @@ matches += [[r'^(Binary files )(.+)( and )(.+)( differ)$',
               light(COLORS[YELLOW])]]]
 matches += [[r'^(diff -r )(.+)( )(.+)$',
              [light(COLORS[YELLOW]), light(COLORS[RED]), COLORS[GREEN], light(COLORS[GREEN])]]]
+#tests += []
 
 ## copy
 #matches += [[r'^sending incremental file list$', [light(COLORS[GREY])]]]
@@ -205,6 +214,7 @@ matches += [[r'^(diff -r )(.+)( )(.+)$',
 #matches += [[r'^.+\.php'], [light(COLORS[GREEN])]]]
 #matches += [[r'^(total size is )([0-9]+)(  speedup is [0-9]+\.[0-9]+)$',
 #             [light(COLORS[GREY]), COLORS[GREEN], light(COLORS[GREY])]]]
+#tests += []
 
 # XML/HTML
 #matches += [[r'^(( *)(</?)([^>]+)(/?>)(([^<]+)?(<)([^>]+)(/?>))?)+$',
@@ -213,6 +223,7 @@ matches += [[r'^( *?)(<)(.+?)(>)((.*?)(<)(.+?)(/?>))?$',
             [COLORS[GREY], light(COLORS[RED]), COLORS[GREEN], light(COLORS[RED]),
              light(COLORS[GREEN]),
              COLORS[GREY], light(COLORS[RED]), COLORS[GREEN], light(COLORS[RED])]]]
+#tests += []
 
 # W3C IIS
 #2021-09-17 08:05:28 192.169.169.41 POST /cpr2.asp - 8080 - 192.168.168.193 - 200 0 0 452
@@ -279,6 +290,19 @@ matches += [[r'^([0-9]{4}-[0-9]{2}-[0-9]{2})( )([0-9]{2}:[0-9]{2}:[0-9]{2})( )' 
              #[(r'^[12][0-9]{2}$', light(COLORS[GREEN])), (r'3[0-9]{2}$', light(COLORS[YELLOW])),
              # (r'^408$', COLORS[GREEN]), (r'^[45][0-9]{2}$', light(COLORS[RED]))], COLORS[GREY],
              #COLORS[MAGENTA], COLORS[GREY], COLORS[GREEN]]]]
+#tests += []
+
+# XML
+#matches += [[r'^<[a-zA-Z0-9]+></[a-zA-Z0-9]+>$',
+#            [COLORS[GREEN]]]]
+#matches += [[r'^.+>$',
+#            [COLORS[GREEN]]]]
+#tests += []
+
+# JSON
+#matches += [[r'^$',
+#            [COLORS[GREEN]]]]
+#tests += []
 
 ##############################################################################################
 
@@ -419,9 +443,16 @@ def match(args, line, regex, colors, local):
 
 def main(args):
    print(__file__ + ' ' + VERSION + ' ' + AUTHOR)
+   test_count = 0
    while True:
       try:
-         line = input()
+         if args.testing:
+            if test_count >= len(tests):
+               break
+            line = tests[test_count]
+            test_count += test_count + 1
+         else:
+            line = input()
       except EOFError:
          break
 
@@ -453,6 +484,7 @@ if __name__ == '__main__':
    parser.add_argument('-e', '--raise_exception', action = 'store_true', help = '(Re)Raise exceptions to shell')
    parser.add_argument('-c', '--cycle_color', action = 'store_true', help = 'Cycle color if running out of colors')
    parser.add_argument('-a', '--abort_no_match', action = 'store_true', help = 'Abort if no match')
+   parser.add_argument('-t', '--testing', action = 'store_true', help = 'Perform internal tests')
    parser.add_argument('-n', '--abort_color', action = 'store_true', help = 'Abort if number of colors don''t match')
    #parser.add_argument('-cg', '--grey', help = 'Color argument grey')
    #parser.add_argument('-lg', '--light_grey', help = 'Color argument light grey')
