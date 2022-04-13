@@ -6,7 +6,8 @@
 # Anything comming in goes out - unless not in a regex group
 #
 # BUGS:
-# xxxx> give black output?
+# Detect empty groups 
+# Add Black color
 # In case of errors read the rest of the input before terminating
 ## Bug - the bugfix cause the program to hang on keyboard input!?!
 # Ran out of colors does not clear the input buffer
@@ -293,11 +294,12 @@ matches += [[r'^([0-9]{4}-[0-9]{2}-[0-9]{2})( )([0-9]{2}:[0-9]{2}:[0-9]{2})( )' 
 #tests += []
 
 # XML
-#matches += [[r'^<[a-zA-Z0-9]+></[a-zA-Z0-9]+>$',
-#            [COLORS[GREEN]]]]
-#matches += [[r'^.+>$',
-#            [COLORS[GREEN]]]]
-#tests += []
+matches += [[r'^<[a-zA-Z0-9]+></[a-zA-Z0-9]+>$',
+            [COLORS[GREEN]]]]
+matches += [[r'^(.+>)$',
+            [COLORS[GREEN]]]]
+tests += ['xxx>']
+tests += ['xxx>xxx']
 
 # JSON
 #matches += [[r'^$',
@@ -450,7 +452,7 @@ def main(args):
             if test_count >= len(tests):
                break
             line = tests[test_count]
-            test_count += test_count + 1
+            test_count += 1
          else:
             line = input()
       except EOFError:
