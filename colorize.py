@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 #
-# By Andrew Rump (andrew@rump.dk) October 2019-2021
+# By Andrew Rump (andrew@rump.dk) 2019-2022
 #
 # Colourize input depending on the format of the input
 # Anything comming in goes out - unless not in a regex group
@@ -18,6 +18,7 @@
 # Input without echo
 #
 # TODO:
+# Make a page/less system so you can see one page at a time
 # Accept words to (re)colorize as argument
 # XML & JSON pattern (require grouping)
 # tail -f of several files: ==> <filename> <==
